@@ -146,7 +146,7 @@ class RocketUI(tk.Tk):
 
     def open_parachute2(self):
         if self.serial_port and self.serial_port.is_open:
- b           self.serial_port.write(b'P2\n')  # LoRa'ya "2. Paraşüt Aç" komutu
+            self.serial_port.write(b'P2\n')  # LoRa'ya "2. Paraşüt Aç" komutu
             print("2. Paraşüt açma komutu gönderildi.")
         else:
             print("LoRa bağlantısı yok.")
