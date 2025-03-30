@@ -3,7 +3,6 @@ from tkinter import ttk
 import serial
 from math import radians, cos, sin
 
-
 class RocketUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -11,6 +10,7 @@ class RocketUI(tk.Tk):
         self.geometry("900x600")
         self.configure(bg='#1D1F20')
 
+        # Stil ayarları
         style = ttk.Style()
         style.configure('TFrame', background='#1D1F20')
         style.configure('TLabelframe', background='#1D1F20')
@@ -18,24 +18,26 @@ class RocketUI(tk.Tk):
         style.configure('TButton', background='#1D1F20', foreground="black", font=("Arial", 12))
         style.map('TButton', background=[('active', '#5A6166')])
 
+        # Ana çerçeve
         main_frame = ttk.Frame(self, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Bağlantı durumu
         self.connection_status_label = ttk.Label(main_frame, text="Bağlantı: Bağlanmadı", font=("Arial", 14),
                                                  foreground="red")
         self.connection_status_label.grid(row=0, column=1, sticky="ne", padx=10, pady=10)
 
+        # Veri ekranı
         data_frame = ttk.LabelFrame(main_frame, text="Orion Roketi Verileri", padding=15)
         data_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
         labels = ["X", "Y", "Z", "Hız", "Yükseklik", "Paraşüt 1", "Paraşüt 2"]
-        self.labels = {label: ttk.Label(data_frame, text="0", font=("Arial", 12), foreground="white") for label in
-                       labels}
+        self.labels = {label: ttk.Label(data_frame, text="0", font=("Arial", 12), foreground="white") for label in labels}
         for idx, label in enumerate(labels):
-            ttk.Label(data_frame, text=f"{label}:", font=("Arial", 12, "bold")).grid(row=idx, column=0, sticky=tk.W,
-                                                                                     pady=5)
+            ttk.Label(data_frame, text=f"{label}:", font=("Arial", 12, "bold")).grid(row=idx, column=0, sticky=tk.W, pady=5)
             self.labels[label].grid(row=idx, column=1, sticky=tk.W, pady=5)
 
+        # Roket yön animasyonu
         animation_frame = ttk.LabelFrame(main_frame, text="Orion Roketi Yönü", padding=10)
         animation_frame.grid(row=2, column=1, sticky="nsew", padx=10, pady=10)
 
@@ -48,14 +50,17 @@ class RocketUI(tk.Tk):
         self.rocket = None
         self.update_tilt(self.angle)
 
+        # Seri port
         self.serial_port = None
+
+        # Düzen ayarları
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
         main_frame.rowconfigure(0, weight=1)
         main_frame.rowconfigure(1, weight=1)
         main_frame.rowconfigure(2, weight=3)
 
-        # 1. ve 2. paraşüt açma butonları
+        # Paraşüt açma butonları
         parachute_frame = ttk.LabelFrame(main_frame, text="Paraşüt Açma", padding=10)
         parachute_frame.grid(row=3, column=0, columnspan=2, pady=10)
 
@@ -67,10 +72,11 @@ class RocketUI(tk.Tk):
 
     def connect_serial(self):
         try:
-            # COM3'ü doğru portla değiştirin
-            self.serial_port = serial.Serial('COM3', 9600, timeout=1)
+            # LoRa modülünün bağlı olduğu portu ve baud rate'i ayarla
+            self.serial_port = serial.Serial('COM3', 9600, timeout=1)  # COM3'ü kendi portunla değiştir
             self.update_connection_status(True)
             self.check_connection()
+            print("LoRa bağlantısı kuruldu.")
         except serial.SerialException as e:
             print(f"Bağlantı hatası: {e}")
             self.update_connection_status(False)
@@ -86,22 +92,26 @@ class RocketUI(tk.Tk):
             self.read_data_from_serial()
         else:
             self.update_connection_status(False)
-        self.after(2000, self.check_connection)
+        self.after(2000, self.check_connection)  # 2 saniyede bir kontrol
 
     def read_data_from_serial(self):
-        if self.serial_port.in_waiting > 0:
-            data = self.serial_port.readline().decode('utf-8').strip()
-            print(f"Alınan Veri: {data}")
-
+        if self.serial_port and self.serial_port.in_waiting > 0:
             try:
-                # Verileri virgülle ayırarak çözümle
+                data = self.serial_port.readline().decode('utf-8').strip()
+                print(f"LoRa'dan alınan veri: {data}")
+                
+                # Gelen veriyi virgülle ayır ve çözümle
                 x, y, z, speed, height, parachute1, parachute2 = map(float, data.split(","))
                 self.update_labels(x, y, z, speed, height, int(parachute1), int(parachute2))
-            except ValueError:
-                print("Veri okuma hatası:", data)
+                
+                # X ve Y eksenine göre roketin yönünü güncelle (örnek olarak)
+                self.angle = x  # X açısını roketin eğimi olarak kullanabilirsin
+                self.update_tilt(self.angle)
+            except (ValueError, UnicodeDecodeError) as e:
+                print(f"Veri okuma hatası: {e} - Ham veri: {data}")
 
     def update_labels(self, x, y, z, speed, height, parachute1, parachute2):
-        # Verileri ekranda güncelle
+        # Verileri arayüzde güncelle
         self.labels["X"].config(text=f"{x:.2f}")
         self.labels["Y"].config(text=f"{y:.2f}")
         self.labels["Z"].config(text=f"{z:.2f}")
@@ -125,23 +135,21 @@ class RocketUI(tk.Tk):
             rotate_point(px, py) for px, py in [nose, left, right]
         ]
 
-        self.rocket = self.canvas.create_polygon(rotated_nose, rotated_left, rotated_right, fill="#FF4500",
-                                                 outline="black")
+        self.rocket = self.canvas.create_polygon(rotated_nose, rotated_left, rotated_right, fill="#FF4500", outline="black")
 
     def open_parachute1(self):
         if self.serial_port and self.serial_port.is_open:
-            self.serial_port.write(b'1')  
-            print("1. Paraşüt açıldı.")
+            self.serial_port.write(b'P1\n')  # LoRa'ya "1. Paraşüt Aç" komutu
+            print("1. Paraşüt açma komutu gönderildi.")
         else:
-            print("Seri port bağlantısı yok.")
+            print("LoRa bağlantısı yok.")
 
     def open_parachute2(self):
         if self.serial_port and self.serial_port.is_open:
-            self.serial_port.write(b'2') 
-            print("2. Paraşüt açıldı.")
+ b           self.serial_port.write(b'P2\n')  # LoRa'ya "2. Paraşüt Aç" komutu
+            print("2. Paraşüt açma komutu gönderildi.")
         else:
-            print("Seri port bağlantısı yok.")
-
+            print("LoRa bağlantısı yok.")
 
 if __name__ == "__main__":
     app = RocketUI()
