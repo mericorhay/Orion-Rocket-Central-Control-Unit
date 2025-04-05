@@ -51,7 +51,7 @@ class RocketUI(tk.Tk):
         self.update_tilt(self.angle)
 
         # Seri port
-        self.serial_port = None
+        self.serial_port = None  # ayarlanacak
 
         # Düzen ayarları
         main_frame.columnconfigure(0, weight=1)
@@ -73,7 +73,7 @@ class RocketUI(tk.Tk):
     def connect_serial(self):
         try:
             # LoRa modülünün bağlı olduğu portu ve baud rate'i ayarla
-            self.serial_port = serial.Serial('COM3', 9600, timeout=1)  # COM3'ü kendi portunla değiştir
+            self.serial_port = serial.Serial('COM3', 9600, timeout=1)  # COM3 standart ayarlandı değiştirilecek _'_'_'_'_'_'_'_
             self.update_connection_status(True)
             self.check_connection()
             print("LoRa bağlantısı kuruldu.")
@@ -92,7 +92,7 @@ class RocketUI(tk.Tk):
             self.read_data_from_serial()
         else:
             self.update_connection_status(False)
-        self.after(2000, self.check_connection)  # 2 saniyede bir kontrol
+        self.after(2000, self.check_connection)  # 2 saniyede bir check
 
     def read_data_from_serial(self):
         if self.serial_port and self.serial_port.in_waiting > 0:
@@ -100,12 +100,12 @@ class RocketUI(tk.Tk):
                 data = self.serial_port.readline().decode('utf-8').strip()
                 print(f"LoRa'dan alınan veri: {data}")
                 
-                # Gelen veriyi virgülle ayır ve çözümle
+                # Gelen veriyi virgülle
                 x, y, z, speed, height, parachute1, parachute2 = map(float, data.split(","))
                 self.update_labels(x, y, z, speed, height, int(parachute1), int(parachute2))
                 
-                # X ve Y eksenine göre roketin yönünü güncelle (örnek olarak)
-                self.angle = x  # X açısını roketin eğimi olarak kullanabilirsin
+                # X ve Y eksenine göre güncelle (dikkat)
+                self.angle = x  # X açısınıroketin eğimidir
                 self.update_tilt(self.angle)
             except (ValueError, UnicodeDecodeError) as e:
                 print(f"Veri okuma hatası: {e} - Ham veri: {data}")
@@ -146,7 +146,7 @@ class RocketUI(tk.Tk):
 
     def open_parachute2(self):
         if self.serial_port and self.serial_port.is_open:
-            self.serial_port.write(b'P2\n')  # LoRa'ya "2. Paraşüt Aç" komutu
+            self.serial_port.write(b'P2\n')  # LoRa'ya "2. Paraşüt Aç" komutu #değiştirilebilir
             print("2. Paraşüt açma komutu gönderildi.")
         else:
             print("LoRa bağlantısı yok.")
